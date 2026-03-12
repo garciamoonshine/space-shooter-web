@@ -1,7 +1,7 @@
 class Enemy {
   constructor(x, y, type, level) {
     this.x = x; this.y = y;
-    this.type = type; // 'A','B','C','boss'
+    this.type = type;
     this.level = level;
     this.w = type === 'boss' ? 80 : 32;
     this.h = type === 'boss' ? 50 : 28;
@@ -13,13 +13,16 @@ class Enemy {
     this.vx = 0; this.vy = 0;
     this.angle = 0;
     this.points = { A: 10, B: 20, C: 40, boss: 500 }[type];
+    this.flashTimer = 0;
   }
 
   update(dt, playerX, W) {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     this.angle += 0.04;
+    if (this.flashTimer > 0) this.flashTimer--;
     if (this.type === 'boss') {
+      this.x = clamp(this.x, 0, W - this.w);
       if (this.x <= 0 || this.x + this.w >= W) this.vx *= -1;
     }
     this.shootTimer--;
@@ -32,6 +35,7 @@ class Enemy {
 
   hit(dmg = 1) {
     this.hp -= dmg;
+    this.flashTimer = 6;
     return this.hp <= 0;
   }
 
@@ -39,10 +43,10 @@ class Enemy {
     ctx.save();
     ctx.translate(this.x + this.w/2, this.y + this.h/2);
     if (this.type !== 'boss') ctx.rotate(Math.sin(this.angle) * 0.1);
+    if (this.flashTimer > 0) ctx.globalAlpha = 0.4;
     const colors = { A: COLORS.enemyA, B: COLORS.enemyB, C: COLORS.enemyC, boss: COLORS.boss };
     ctx.fillStyle = colors[this.type];
     if (this.type === 'boss') {
-      // draw boss shape
       ctx.beginPath();
       ctx.moveTo(0, -this.h/2);
       ctx.lineTo(this.w/2, 0);
@@ -51,7 +55,7 @@ class Enemy {
       ctx.lineTo(-this.w/2, 0);
       ctx.closePath();
       ctx.fill();
-      // hp bar
+      ctx.globalAlpha = 1;
       ctx.fillStyle = '#333';
       ctx.fillRect(-this.w/2, -this.h/2 - 10, this.w, 6);
       ctx.fillStyle = '#f00';
